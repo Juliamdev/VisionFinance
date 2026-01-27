@@ -8,9 +8,9 @@ export default {
     extend: {
       colors: {
         finance: {
-          primary: '#0f172a',    // Azul marinho (elegante)
-          secondary: '#10b981',  // Verde (sucesso/lucro)
-          background: '#f8fafc', // Cinza azulado bem clarinho
+          primary: '#0f172a',
+          secondary: '#10b981',
+          background: '#f8fafc',
         }
       }
     },

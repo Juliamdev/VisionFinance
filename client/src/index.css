@@ -1,8 +1,12 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-/* Isso garante que o fundo das suas telas seja suave como você planejou */
+@theme {
+  --color-finance-primary: #0f172a;
+  --color-finance-secondary: #10b981;
+  --color-finance-background: #f8fafc;
+}
+
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  /* No v4, usamos o nome da variável que criamos acima */
+  @apply bg-finance-background text-slate-900 antialiased;
 }
