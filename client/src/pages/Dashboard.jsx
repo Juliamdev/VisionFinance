@@ -1,20 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { AssetChart } from '../components/AssetChart';
+import { EvolutionChart } from '../components/EvolutionChart'; // Importe o novo gráfico aqui
 import { Modal } from '../components/Modal';
 import { SummaryCard } from '../components/SummaryCard';
 import { InvestmentTable } from '../components/InvestmentTable';
 import { supabase } from '../lib/supabaseClient';
-import { useEffect } from 'react';
 
-export function Dashboard({session}) {
+export function Dashboard({ session }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [assets, setAssets] = useState([]); // Começa vazio
+  const [assets, setAssets] = useState([]);
   const [formData, setFormData] = useState({ ticker: '', quantity: '', price: '' });
 
-  //Busca dados privados
+  // 1. BUSCA DADOS PRIVADOS
   useEffect(() => {
-    const fetchInvestments = await () => {
+    const fetchInvestments = async () => {
       const { data, error } = await supabase
         .from('investments')
         .select('*')
@@ -29,6 +29,7 @@ export function Dashboard({session}) {
     }
   }, [session]);
 
+  // 2. SALVAR COM USER_ID
   const handleSave = async (e) => {
     e.preventDefault();
     
@@ -36,7 +37,7 @@ export function Dashboard({session}) {
       ticker: formData.ticker, 
       quantity: Number(formData.quantity), 
       price: Number(formData.price),
-      user_id: session.user.id // ASSINATURA: Vincula o dado ao usuário logado
+      user_id: session.user.id 
     };
 
     const { data, error } = await supabase
@@ -46,60 +47,9 @@ export function Dashboard({session}) {
     if (error) {
       alert("Erro ao salvar: " + error.message);
     } else {
-      // Atualiza a interface localmente para ser instantâneo
-      setAssets(prev => [...prev, newInvestment]);
-      setIsModalOpen(false);
-      setFormData({ ticker: '', quantity: '', price: '' });
-    }
-  };
-
-  // --- LÓGICA DE CÁLCULO  ---
-  const totalPatrimonio = assets.reduce((acc, asset) => {
-    // Usamos Number() para garantir que o cálculo não tente somar textos
-    return acc + (Number(asset.quantity || 0) * Number(asset.price || 0));
-  }, 0);
-
-  const totalFormatado = new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(totalPatrimonio);
-
-  // Exemplo de rendimento estimado (2.4% do total)
-  const rendimentoEstimado = totalPatrimonio * 0.024;
-  const rendimentoFormatado = new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(rendimentoEstimado);
-  // 
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === 'ticker' ? value.toUpperCase() : value
-    }));
-  };
-
-
-  const handleSave = async (e) => {
-    e.preventDefault();
-
-    // 1. Enviar para o Supabase
-    const { data, error } = await supabase
-      .from('investments') // Nome da tabela que criou
-      .insert([
-        {  
-          ticker: formData.ticker, 
-          quantity: Number(formData.quantity), 
-          price: Number(formData.price) 
-        }
-      ]);
-
-    if (error) {
-      alert("Erro ao salvar: " + error.message);
-    } else {
-      // 2. Se deu certo, atualiza a tela e fecha o modal
-      setAssets(prev => [...prev, formData]);
+      // Para garantir que a data apareça após salvar, o ideal é buscar do banco novamente
+      // ou adicionar uma data manual temporária:
+      setAssets(prev => [...prev, { ...newInvestment, created_at: new Date().toISOString() }]);
       setIsModalOpen(false);
       setFormData({ ticker: '', quantity: '', price: '' });
     }
@@ -109,60 +59,53 @@ export function Dashboard({session}) {
     setAssets(prev => prev.filter((_, index) => index !== indexToDelete));
   };
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'ticker' ? value.toUpperCase() : value
+    }));
+  };
 
+  // --- LÓGICA DE CÁLCULO ---
+  const totalPatrimonio = assets.reduce((acc, asset) => {
+    return acc + (Number(asset.quantity || 0) * Number(asset.price || 0));
+  }, 0);
 
-  // Dentro da função Dashboard
-  useEffect(() => {
-    const fetchInvestments = async () => {
-      const { data, error } = await supabase
-        .from('investments')
-        .select('*');
-
-      if (data) setAssets(data);
-    };
-
-    fetchInvestments();
-  }, []);
+  const totalFormatado = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalPatrimonio);
+  const rendimentoFormatado = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalPatrimonio * 0.024);
 
   return (
-    <>
+    <div className="max-w-7xl mx-auto">
       <header className="mb-10 flex justify-between items-center text-left">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 font-sans">VisionFinance</h1>
-          <p className="text-slate-500">Gestão inteligente para seus investimentos.</p>
+          <h1 className="text-2xl font-bold text-slate-900">VisionFinance</h1>
+          <p className="text-slate-500">Bem-vinda de volta, Júlia!</p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
           className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-slate-800 transition-all flex items-center gap-2 shadow-lg"
         >
-          <Plus size={20} />
-          Novo Ativo
+          <Plus size={20} /> Novo Ativo
         </button>
       </header>
 
-      {/* Grid de Cards Dinâmicos */}
+      {/* Cards de Resumo */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 text-left">
-        <SummaryCard 
-          title="Patrimônio Total" 
-          value={totalFormatado} 
-          percentage={`+${assets.length} ativos`} 
-          positive 
-        />
-        <SummaryCard 
-          title="Projeção de Rendimento" 
-          value={rendimentoFormatado} 
-          percentage="2.4% a.m." 
-          positive 
-        />
-        <SummaryCard 
-          title="Ativos em Carteira" 
-          value={assets.length.toString()} 
-          percentage="Unidades" 
-        />
+        <SummaryCard title="Patrimônio Total" value={totalFormatado} percentage={`+${assets.length} ativos`} positive />
+        <SummaryCard title="Projeção (2.4% a.m.)" value={rendimentoFormatado} percentage="Rendimento" positive />
+        <SummaryCard title="Ativos em Carteira" value={assets.length.toString()} percentage="Unidades" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        <AssetChart />
+      {/* Seção de Gráficos: Agora com o Gráfico de Evolução */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10 items-start">
+        <EvolutionChart assets={assets} />
+        <AssetChart assets={assets} />
+      </div>
+
+      {/* Tabela de Investimentos com Datas e Rendimentos */}
+      <div className="mt-10">
+        <h2 className="text-xl font-bold text-slate-900 mb-4 text-left">Sua Carteira Detalhada</h2>
         <InvestmentTable assets={assets} onDelete={handleDelete} />
       </div>
 
@@ -188,6 +131,6 @@ export function Dashboard({session}) {
           </button>
         </form>
       </Modal>
-    </>
+    </div>
   );
 }

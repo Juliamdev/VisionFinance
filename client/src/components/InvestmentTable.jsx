@@ -3,58 +3,68 @@ import { Trash2, TrendingUp } from 'lucide-react';
 export function InvestmentTable({ assets, onDelete }) {
   return (
     <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-      <div className="p-6 border-b border-slate-50 flex justify-between items-center">
-        <h3 className="text-lg font-bold text-slate-900">Meus Ativos</h3>
-        <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">
-          {assets.length} ativos cadastrados
-        </span>
-      </div>
-      
       <div className="overflow-x-auto">
-        <table className="w-full text-left">
-          <thead className="bg-slate-50/50">
-            <tr>
-              <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">Ticker</th>
-              <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase text-right">Qtd.</th>
-              <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase text-right">Preço Médio</th>
-              <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase text-center">Ações</th>
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-slate-50">
+              <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Ativo</th>
+              <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Data</th>
+              <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Qtd</th>
+              <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Preço Médio</th>
+              <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Rendimento</th>
+              <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Acções</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {assets.length === 0 ? (
-              <tr>
-                <td colSpan="4" className="px-6 py-10 text-center text-slate-400 text-sm italic">
-                  Nenhum investimento cadastrado ainda.
-                </td>
-              </tr>
-            ) : (
-              assets.map((asset, index) => (
-                <tr key={index} className="hover:bg-slate-50/50 transition-colors group">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-slate-900 rounded-lg">
-                        <TrendingUp className="text-white" size={14} />
+            {assets.map((asset, index) => {
+              // Lógica de Rendimento (Simulada em 10% para este exemplo)
+              const valorInvestido = Number(asset.quantity) * Number(asset.price);
+              const rendimentoSimulado = valorInvestido * 0.10;
+              
+              // Formatação da Data vinda do Supabase
+              const dataFormatada = asset.created_at 
+                ? new Date(asset.created_at).toLocaleDateString('pt-PT') 
+                : 'Pendente';
+
+              return (
+                <tr key={asset.id || index} className="hover:bg-slate-50/50 transition-colors group">
+                  <td className="p-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
+                        <TrendingUp size={14} className="text-slate-900" />
                       </div>
                       <span className="font-bold text-slate-900">{asset.ticker}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-right font-medium text-slate-600">{asset.quantity}</td>
-                  <td className="px-6 py-4 text-right font-medium text-slate-600">
-                    {Number(asset.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  <td className="p-4 text-slate-500 text-sm">{dataFormatada}</td>
+                  <td className="p-4 text-slate-600">{asset.quantity}</td>
+                  <td className="p-4 text-slate-600">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(asset.price)}
                   </td>
-                  <td className="px-6 py-4 text-center">
+                  <td className="p-4">
+                    <span className="text-emerald-600 font-bold">
+                      +{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(rendimentoSimulado)}
+                    </span>
+                  </td>
+                  <td className="p-4 text-right">
                     <button 
                       onClick={() => onDelete(index)}
-                      className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                      className="p-2 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
                     >
                       <Trash2 size={18} />
                     </button>
                   </td>
                 </tr>
-              ))
-            )}
+              );
+            })}
           </tbody>
         </table>
+        
+        {assets.length === 0 && (
+          <div className="p-10 text-center text-slate-400">
+            Nenhum investimento registado no VisionFinance.
+          </div>
+        )}
       </div>
     </div>
   );
